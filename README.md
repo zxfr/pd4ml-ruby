@@ -16,18 +16,13 @@ pd.write_pdf('hello.pdf')          # or pdf = pd.write_pdf (a binary String), or
 
 ## Installation
 
-With Bundler, in the `Gemfile`:
-
-```ruby
-gem 'pd4ml', git: 'https://github.com/zxfr/pd4ml-ruby.git'
 ```
-
-or download the gem from <https://github.com/zxfr/pd4ml-ruby/releases>:
-
-```
-gem install pd4ml-1.0.0.gem
+gem install pd4ml
 pd4ml install            # optional: otherwise the first use downloads PD4ML
 ```
+
+or `gem 'pd4ml'` in the `Gemfile`. The gem is on RubyGems (<https://rubygems.org/gems/pd4ml>);
+its contents and releases are also on GitHub (<https://github.com/zxfr/pd4ml-ruby>).
 
 Requirements:
 

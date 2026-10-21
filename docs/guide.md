@@ -44,21 +44,17 @@ containers, use an image with both Ruby and Java, or add a JRE to the Ruby image
 
 ### 2.1 Install the gem
 
-With Bundler, add the gem to the `Gemfile` and run `bundle install`:
-
-<!-- no-test -->
-```ruby
-gem 'pd4ml', git: 'https://github.com/zxfr/pd4ml-ruby.git'
+```
+gem install pd4ml
 ```
 
-Without Bundler, download the gem from <https://github.com/zxfr/pd4ml-ruby/releases> and
-install it:
+or, with Bundler, `gem 'pd4ml'` in the `Gemfile` and `bundle install`. The gem has no gem
+dependencies and installs the `pd4ml` command.
 
-```
-gem install pd4ml-1.0.0.gem
-```
-
-The gem has no gem dependencies and installs the `pd4ml` command.
+The gem is published on RubyGems as [`pd4ml`](https://rubygems.org/gems/pd4ml). The same files
+are on GitHub, <https://github.com/zxfr/pd4ml-ruby>, with each version's `.gem` attached to its
+[release](https://github.com/zxfr/pd4ml-ruby/releases); Bundler can also take it from there
+(`gem 'pd4ml', git: 'https://github.com/zxfr/pd4ml-ruby.git'`).
 
 ### 2.2 Install PD4ML
 
@@ -530,6 +526,7 @@ pd.render_as_images('pages', 'page', Pd4ml::Constants::PNG24)  # page files in a
 ```
 
 The image formats are `PNG8`, `PNG24`, `TIFF` and `TIFF_COMPRESSED` (constants in `Constants`).
+The TIFF formats need Java 9 or later.
 The v42 engine does not support the multi-page TIFF formats yet; use the v40 engine for them.
 
 With the v42 engine, DOCX/RTF output can be made *editable*: positioned content becomes text
@@ -730,6 +727,7 @@ Without a license, PD4ML is fully functional but marks its output. See
 | Output is watermarked | No license is installed ([licensing](https://pd4ml.com/docs/#3.-licensing)). |
 | Squares instead of characters | The fonts lack those glyphs. Provide fonts with `use_ttf` ([fonts](https://pd4ml.com/docs/#9.-fonts-bookmarks-and-hyperlinks)). |
 | `NoClassDefFoundError: org/bouncycastle/...` with `set_permissions` | The Bouncy Castle jars are missing. Install without `--no-bouncycastle`, or add them to the classpath. |
+| `NoClassDefFoundError: com/sun/media/jai/...` with `render_as_images` / `render_png` | PD4ML 4.1.1 and earlier need the Java Advanced Imaging jars for page images. Use a newer PD4ML build, or add `jai-core` and `jai-codec` 1.1.3 (from the JBoss Maven repository) to the classpath. |
 | Warning "has no v42 layout engine" | The PD4ML build predates 4.2, so the conversion uses its own engine. Use a 4.2 build for v42. |
 | `Pd4ml::JavaError: ... NoSuchMethodException` | No Java method of that name takes those argument types. Check [api.md](api.md); pass floats as `10.0`, binary data as a binary String. |
 
