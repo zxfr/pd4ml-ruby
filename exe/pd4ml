@@ -1,0 +1,132 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# The pd4ml command: install/list PD4ML builds, show the version, run a bridge server, convert.
+require 'optparse'
+require_relative '../lib/pd4ml'
+
+USAGE = <<~TEXT
+  usage: pd4ml <command> [options]
+
+    install [VERSION] [--snapshots] [--jakarta] [--home DIR] [--force] [--no-bouncycastle]
+                        download a PD4ML build (default: the most recent 4.* release), or update to it
+    list [--snapshots] [--jakarta]
+                        the versions in the PD4ML repository (* the installed one)
+    version             the PD4ML version the gem runs (downloads it on first use)
+    serve [--port N]    run a bridge server (default port 8723) for PD4ML_BRIDGE=tcp://127.0.0.1:N
+    convert INPUT OUTPUT [--format pdf|docx|rtf|png] [--page-size A4] [--landscape]
+            [--margins 10,10,10,10] [--width PX] [--engine v42|v40] [--spec pdf/a-2b]
+            [--footer HTML] [--bookmarks]
+                        convert a file or URL; the format follows OUTPUT's extension by default
+
+    PD4ML_CLASSPATH / PD4ML_CLASSPATH_FILE / PD4ML_HOME / PD4ML_JAVA choose the build and Java.
+    https://pd4ml.com/docs/
+TEXT
+
+def options(args, &block)
+  opts = {}
+  parser = OptionParser.new { |o| block.call(o, opts) }
+  rest = parser.parse(args)
+  [opts, rest]
+end
+
+def convert(args)
+  opts, (input, output) = options(args) do |o, h|
+    o.on('--format F') { |v| h[:format] = v }
+    o.on('--page-size S') { |v| h[:page_size] = v }
+    o.on('--landscape') { h[:landscape] = true }
+    o.on('--margins M') { |v| h[:margins] = v }
+    o.on('--width PX', Integer) { |v| h[:width] = v }
+    o.on('--engine E') { |v| h[:engine] = v }
+    o.on('--spec S') { |v| h[:spec] = v }
+    o.on('--footer HTML') { |v| h[:footer] = v }
+    o.on('--bookmarks') { h[:bookmarks] = true }
+  end
+  raise ArgumentError, 'convert: INPUT and OUTPUT expected' unless input && output
+
+  format = (opts[:format] || File.extname(output).delete('.')).downcase
+  pd = Pd4ml::PD4ML.new(html_width: opts[:width], engine: opts[:engine])
+  if opts[:page_size]
+    size = Pd4ml::PageSize.get_instance(opts[:page_size].downcase)
+    raise ArgumentError, "unknown page size '#{opts[:page_size]}'" if size.nil?
+
+    pd.set_page_size(opts[:landscape] ? size.rotate : size)
+  elsif opts[:landscape]
+    pd.set_page_size(Pd4ml::PageSize::A4.rotate)
+  end
+  if opts[:margins]
+    mm = opts[:margins].split(',').map { |s| Integer(s.strip) }
+    mm *= 4 if mm.size == 1
+    raise ArgumentError, '--margins: one or four values (mm)' unless mm.size == 4
+
+    pd.set_page_margins(Pd4ml::PageMargins.new(*mm, Pd4ml::Units::MM))
+  end
+  pd.set_page_footer(opts[:footer], 30, '1+') if opts[:footer]
+  pd.generate_bookmarks_from_headings(true) if opts[:bookmarks]
+  pd.read_html(input)
+  case format
+  when 'pdf' then pd.write_pdf(output, spec: opts[:spec])
+  when 'docx' then pd.write_docx(output)
+  when 'rtf' then pd.write_rtf(output)
+  when 'png'
+    pages = pd.render_png
+    if pages.size == 1
+      File.binwrite(output, pages[0])
+    else
+      stem = output.sub(/\.png\z/i, '')
+      pages.each_with_index { |p, i| File.binwrite("#{stem}-#{i + 1}.png", p) }
+    end
+  else raise ArgumentError, "unknown format '#{format}' (pdf, docx, rtf, png)"
+  end
+end
+
+def main(argv)
+  command, *args = argv
+  if command.nil? || %w[-h --help help].include?(command)
+    puts USAGE
+    return command ? 0 : 2
+  end
+  case command
+  when 'install'
+    opts, rest = options(args) do |o, h|
+      o.on('--snapshots') { h[:snapshots] = true }
+      o.on('--jakarta') { h[:jakarta] = true }
+      o.on('--home DIR') { |v| h[:home] = v }
+      o.on('--force') { h[:force] = true }
+      o.on('--no-bouncycastle') { h[:bouncycastle] = false }
+    end
+    puts Pd4ml::Installer.install(rest.first || 'latest', **opts)
+  when 'list'
+    opts, = options(args) do |o, h|
+      o.on('--snapshots') { h[:snapshots] = true }
+      o.on('--jakarta') { h[:jakarta] = true }
+    end
+    installed = Pd4ml::Installer.installed_version
+    Pd4ml::Installer.sort_versions(Pd4ml::Installer.available_versions).each do |v|
+      next if !opts[:snapshots] && v.end_with?('-SNAPSHOT')
+      next if v.include?('-jakarta') != !!opts[:jakarta]
+
+      puts((v == installed ? '* ' : '  ') + v)
+    end
+  when 'version'
+    puts Pd4ml.version
+  when 'serve'
+    opts, = options(args) { |o, h| o.on('--port N', Integer) { |v| h[:port] = v } }
+    port = opts[:port] || 8723
+    cmd = Pd4ml::Bridge.command(port: port)
+    warn "PD4ML bridge on tcp://127.0.0.1:#{port} (Ctrl+C to stop)"
+    exec(*cmd)
+  when 'convert'
+    convert(args)
+  else
+    warn "pd4ml: unknown command '#{command}'\n\n#{USAGE}"
+    return 2
+  end
+  0
+rescue Pd4ml::BridgeError, Pd4ml::InstallError, Pd4ml::JavaError, ArgumentError, OptionParser::ParseError,
+       SystemCallError => e
+  warn "pd4ml: #{e.message}"
+  1
+end
+
+exit main(ARGV)
