@@ -9,9 +9,10 @@ require 'time'
 module Pd4ml
   # Downloads a PD4ML build from the PD4ML Maven repository and makes it the gem's default:
   #
-  #   pd4ml install                    the most recent 4.* release
+  #   pd4ml install                    the most recent release from MINIMUM_VERSION (4.2.0) on;
+  #                                    until there is one, the most recent 4.2.x snapshot
   #   pd4ml install --snapshots        the most recent 4.* build, snapshots included
-  #   pd4ml install 4.0.23fx2          an exact version
+  #   pd4ml install 4.1.2              an exact version
   #
   # or Pd4ml.install from code. The jar is stored in the user's cache directory (PD4ML_HOME to
   # choose another) with the Bouncy Castle jars PD4ML needs for encryption and signing, every
@@ -26,6 +27,9 @@ module Pd4ml
     BOUNCYCASTLE = %w[bcprov-jdk18on bcpkix-jdk18on bcutil-jdk18on].freeze
     MANIFEST = 'installed.json'
     VERSION_PATTERN = /\A(\d+)\.(\d+)\.(\d+)(?:fx(\d+)(?:a(\d+))?)?(-jakarta)?(-SNAPSHOT)?\z/
+    # The oldest PD4ML a plain install takes: the gem's PD4ML 4.2 API (read_eml/read_mht,
+    # add_allowed_resource_location, add_metadata, the DOM API) needs it.
+    MINIMUM_VERSION = '4.2.0'
 
     module_function
 
@@ -54,20 +58,52 @@ module Pd4ml
       sort_versions(candidates).last
     end
 
+    # The version a plain install takes: the most recent release of the minimum's major line (4.*)
+    # at least `minimum`; while there is none, the most recent snapshot of the minimum's line
+    # (4.2.x for 4.2.0); while there is none of those either (the -jakarta variant has no 4.2
+    # build yet), the most recent 4.* release, as before. So installs move to the release once it
+    # is out, and snapshots of later lines (or a 5.x) are never picked by accident. With
+    # `jakarta`, the same among the -jakarta variants.
+    def default_version(versions, jakarta: false, minimum: MINIMUM_VERSION)
+      min = version_key(minimum)
+      candidates = versions.select do |v|
+        k = version_key(v)
+        k && k[0] == min[0] && v.include?('-jakarta') == jakarta
+      end
+      releases = candidates.select { |v| !v.end_with?('-SNAPSHOT') && (version_key(v) <=> min) >= 0 }
+      return sort_versions(releases).last unless releases.empty?
+
+      snapshots = candidates.select { |v| v.end_with?('-SNAPSHOT') && version_key(v)[0, 2] == min[0, 2] }
+      return sort_versions(snapshots).last unless snapshots.empty?
+
+      select_version(versions, major: min[0], jakarta: jakarta)
+    end
+
     # The versions the repository lists.
     def available_versions(repository = REPOSITORY)
-      fetch("#{repository}/#{GROUP_PATH}/maven-metadata.xml").scan(%r{<version>([^<]+)</version>}).flatten.map(&:strip)
+      parse_versions(fetch("#{repository}/#{GROUP_PATH}/maven-metadata.xml"))
     end
+
+    # The versions a maven-metadata.xml document lists.
+    def parse_versions(xml) = xml.scan(%r{<version>([^<]+)</version>}).flatten.map(&:strip)
 
     # ------------------------------------------------------------------------------ install
 
     # Downloads a PD4ML build (unless already there) and makes it the default one; returns the
-    # jar's path. version: 'latest' (the most recent 4.* release; with snapshots: true, the most
-    # recent 4.* build) or an exact one such as '4.0.23fx2'.
+    # jar's path. version: 'latest' (default_version: the most recent release from MINIMUM_VERSION
+    # on, else the most recent 4.2.x snapshot; with snapshots: true, the most recent 4.* build) or
+    # an exact one such as '4.1.2' or '4.0.23fx2'.
     def install(version = 'latest', snapshots: false, jakarta: false, repository: REPOSITORY, home: nil,
                 force: false, quiet: false, bouncycastle: true)
       home ||= default_home
-      version = select_version(available_versions(repository), snapshots: snapshots, jakarta: jakarta) if version == 'latest'
+      if version == 'latest'
+        versions = available_versions(repository)
+        version = if snapshots
+                    select_version(versions, snapshots: true, jakarta: jakarta)
+                  else
+                    default_version(versions, jakarta: jakarta)
+                  end
+      end
       name = jar_name(version, repository)
       jar = File.join(home, name)
       download("#{repository}/#{GROUP_PATH}/#{version}/#{name}", jar, force, quiet)

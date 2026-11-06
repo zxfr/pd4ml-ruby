@@ -5,7 +5,9 @@ module Pd4ml
   # engine by default. Every Java method is available by its Java name or in Ruby style
   # (`set_page_size`, `add_style`, `use_ttf`); these take Ruby I/O: read_html (a path, URL or
   # binary String/IO), read_html_string, write_pdf/write_docx/write_rtf (the document returned as
-  # a binary String, or written to a path or IO), render_as_images and monitor_progress_with (a block).
+  # a binary String, or written to a path or IO), render_as_images and monitor_progress_with (a block);
+  # read_eml/read_mht (e-mail messages, saved web pages) as read_html. get_document and layout (the
+  # DOM API, v42 engine) return com.pd4ml.dom objects, whose lists come back as Ruby Arrays.
   #
   #   pd = Pd4ml::PD4ML.new
   #   pd.set_page_size(Pd4ml::PageSize::A4)
@@ -117,6 +119,24 @@ module Pd4ml
     end
     alias readHtmlString read_html_string
 
+    # Reads an e-mail message (.eml) to convert: its body, HTML if it has one, with the images it
+    # embeds, after a block with From, Date, To, Cc, Subject and the attachments, which are
+    # embedded in the PDF. `source` as for read_html: a path or URL, or the message itself (a
+    # binary String or IO). Of resources outside the message only https:// ones are loaded;
+    # add_allowed_resource_location replaces that. read_html recognizes messages too; this is the
+    # way for mail from outside your control. PD4ML 4.2 and later.
+    def read_eml(source)
+      read_mime('readEML', source)
+    end
+    alias readEML read_eml
+
+    # Reads a web page saved as a single file (.mht, .mhtml), with the images, style sheets and
+    # fonts saved in it; `source` as for read_eml. PD4ML 4.2 and later.
+    def read_mht(source)
+      read_mime('readMHT', source)
+    end
+    alias readMHT read_mht
+
     # -------------------------------------------------------------------------------- output
 
     # Writes the PDF: to `target` (a path or an IO), or returned as a binary String. spec: a
@@ -174,6 +194,16 @@ module Pd4ml
     alias monitorProgressWith monitor_progress_with
 
     private
+
+    def read_mime(method, source)
+      arg = if location?(source)
+              Pd4ml.to_url(source)
+            else
+              source.is_a?(JavaObject) ? source : Pd4ml.binary(source)
+            end
+      Bridge.get.call(@java, method, [arg])
+      nil
+    end
 
     def location?(source)
       source.is_a?(Pathname) || source.is_a?(URI::Generic) ||

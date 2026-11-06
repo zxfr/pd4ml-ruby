@@ -35,6 +35,19 @@ module Pd4ml
   ResourceProvider = Java.type('com.pd4ml.ResourceProvider')
   CustomTag = Java.type('com.pd4ml.CustomTag')
 
+  # The DOM API (com.pd4ml.dom, PD4ML 4.2, v42 engine; DMS and UA editions): PD4ML#get_document and
+  # PD4ML#layout return its objects. Their Java lists and sets come back as Ruby Arrays, maps as Hashes.
+  module Dom
+    Node = Java.type('com.pd4ml.dom.Node')
+    Document = Java.type('com.pd4ml.dom.Document')
+    Element = Java.type('com.pd4ml.dom.Element')
+    Text = Java.type('com.pd4ml.dom.Text')
+    Comment = Java.type('com.pd4ml.dom.Comment')
+    DocumentType = Java.type('com.pd4ml.dom.DocumentType')
+    Layout = Java.type('com.pd4ml.dom.Layout')
+    LayoutBox = Java.type('com.pd4ml.dom.LayoutBox')
+  end
+
   FORMATS = %w[PDF PDFA PDFUA].freeze
 
   class << self

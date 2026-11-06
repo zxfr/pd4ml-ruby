@@ -66,7 +66,7 @@ module Pd4ml
         unless entries
           entries = Installer.installed_classpath
           if entries.empty? && Installer.auto_install?
-            warn 'pd4ml: no PD4ML build installed yet: downloading the most recent release ' \
+            warn "pd4ml: no PD4ML build installed yet: downloading PD4ML #{Installer::MINIMUM_VERSION} or later " \
                  "(once; 'pd4ml install' updates it, PD4ML_AUTO_INSTALL=0 turns this off)"
             Installer.install
             entries = Installer.installed_classpath

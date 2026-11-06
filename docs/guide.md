@@ -34,7 +34,7 @@ The generated reference of every class and method is [api.md](api.md).
 | **Java 8 or later** | A JDK or JRE; an LTS release (17, 21) is recommended. The gem finds it through `PD4ML_JAVA`, then `JAVA_HOME`, then `java` on the `PATH`. |
 | **PD4ML** | Downloaded automatically on first use, or ahead of time with `pd4ml install` (see below); or any PD4ML build you point the gem at. |
 | **Network access** | Only for downloading PD4ML. Conversions need none, unless the HTML references remote resources. |
-| **A PD4ML license** | Optional for evaluation. Without one, PD4ML runs in evaluation mode and watermarks its output. See [Licensing](https://pd4ml.com/docs/#3.-licensing) and [5.18](#518-licensing). |
+| **A PD4ML license** | Optional for evaluation. Without one, PD4ML runs in evaluation mode and watermarks its output. See [Licensing](https://pd4ml.com/docs/#3.-licensing) and [5.21](#521-licensing). |
 
 Check Java with `java -version`. On a server without Java, install a JRE package (for example
 `apt install openjdk-21-jre-headless`) and, if it is not on the `PATH`, set `JAVA_HOME`. In
@@ -62,9 +62,9 @@ The gem contains the Ruby library and the bridge only. The PD4ML library itself 
 PD4ML Maven repository (<https://pd4ml.com/maven2>), in one of two ways.
 
 **Automatically, on first use.** If no PD4ML build is installed or configured
-([2.3](#23-other-ways-to-provide-pd4ml)), the first use of PD4ML in a process downloads the most
-recent PD4ML 4.x release before starting Java. A warning on standard error reports it. So once the gem
-is installed, this is all it takes:
+([2.3](#23-other-ways-to-provide-pd4ml)), the first use of PD4ML in a process downloads PD4ML 4.2
+([which build](#which-build)) before starting Java. A warning on standard error reports it. So
+once the gem is installed, this is all it takes:
 
 <!-- no-test -->
 ```ruby
@@ -82,7 +82,7 @@ pd4ml install                 # with Bundler: bundle exec pd4ml install
 
 Either way, the gem:
 
-- downloads the most recent PD4ML 4.x release;
+- downloads PD4ML 4.2 ([which build](#which-build));
 - downloads the Bouncy Castle jars PD4ML needs for encryption and signing, from Maven Central;
 - checks every file against its published SHA-1 checksum;
 - stores them in a per-user cache directory: `%LOCALAPPDATA%\pd4ml-ruby` on Windows,
@@ -91,12 +91,29 @@ Either way, the gem:
 The gem then uses that build. Later runs do not check for newer PD4ML releases: run
 `pd4ml install` again to update. Updating the gem does not change the PD4ML build.
 
+<a id="which-build"></a>**Which build.** The gem needs PD4ML 4.2 for its 4.2 API: `read_eml` and
+`read_mht`, `add_allowed_resource_location`, `add_metadata` (XMP), and the DOM API
+(`get_document`, `layout`), as well as for the v42 layout engine ([4.3](#43-layout-engines)). So a
+plain `pd4ml install` (and the first use) takes:
+
+- the most recent PD4ML release from 4.2.0 on;
+- while 4.2.0 is not released yet, the most recent 4.2.x **development snapshot** (today
+  4.2.0-SNAPSHOT), because no release has the 4.2 API yet.
+
+Once 4.2.0 is released, new installs take it by themselves, and `pd4ml install` updates an
+existing snapshot install to it. Snapshots of later versions (4.3, 5.0) are never taken by
+default; `--snapshots` asks for them.
+
+The rest of the API works with older builds too: to stay on the current 4.1 release, install it
+explicitly (`pd4ml install 4.1.2`); the 4.2 methods then raise `Pd4ml::JavaError`
+(`NoSuchMethodException`).
+
 | Option | |
 |---|---|
-| *(none)* | the most recent 4.x release, or an update to it |
+| *(none)* | the most recent release from 4.2.0 on, else the most recent 4.2.x snapshot ([which build](#which-build)), or an update to it |
 | `--snapshots` | the most recent 4.x build, including development snapshots |
-| `pd4ml install 4.0.23fx2` | an exact version |
-| `--jakarta` | the `-jakarta` variant (for Jakarta EE / Servlet 6 environments) |
+| `pd4ml install 4.1.2` | an exact version (any release or snapshot the repository lists) |
+| `--jakarta` | the `-jakarta` variant (for Jakarta EE / Servlet 6 environments); while there is no 4.2 `-jakarta` build, the most recent `-jakarta` release (4.0.x, without the 4.2 API) |
 | `--home DIR` | install into `DIR` (default: `PD4ML_HOME`, else the cache directory) |
 | `--force` | download again |
 | `--no-bouncycastle` | skip the Bouncy Castle jars (encryption and signing will not work) |
@@ -252,6 +269,10 @@ such a build:
 - **Objects**: a Java object comes back as a `Pd4ml::JavaObject` with all its Java methods.
   Public fields: `obj[:width]` and `obj[:width] = value`. `to_s` is Java's `toString()`,
   `enum_name` an enum constant's name, `java_class` the class name.
+- **Collections**: a Java `List` or `Map` generally comes back as a `JavaObject` (`size`,
+  `get(i)`). The DOM API ([5.18](#518-modifying-the-document-before-conversion-dom-api)) is the
+  exception: its lists and sets come back as Ruby Arrays and its maps as Hashes. `call_java` returns
+  them as Java objects.
 - **Values**: Strings, Integers, Floats (`100.0` goes to Java as a float), `true`/`false`, `nil`,
   Symbols (as strings: `engine: :v40`), Arrays, Hashes (as Java `Map`s).
 - **Binary data**: a binary String (`File.binread`, `"...".b`, encoding ASCII-8BIT) goes to Java
@@ -529,9 +550,8 @@ The image formats are `PNG8`, `PNG24`, `TIFF` and `TIFF_COMPRESSED` (constants i
 The TIFF formats need Java 9 or later.
 The v42 engine does not support the multi-page TIFF formats yet; use the v40 engine for them.
 
-With the v42 engine, DOCX/RTF output can be made *editable*: positioned content becomes text
-boxes and form fields instead of pictures. To enable it, call
-`pd.set_param(Pd4ml::Constants::PD4ML_WORD_EDITABLE, 'true')`.
+With the v42 engine, DOCX/RTF output is *editable*: positioned content becomes text boxes
+and form fields, not pictures.
 
 ### 5.12 Interactive forms and multi-column layout
 
@@ -583,6 +603,7 @@ pd.set_log_level(1)                               # 0 (silent) .. 5
 pd.set_author_name('Reporting service')
 pd.set_document_title('Monthly statement')
 pd.add_metadata('StatementId', '2026-10', false)
+pd.add_metadata('http://www.w3.org/ns/tdmrep/', 'tdm', 'reservation', '1')   # XMP, a namespace of your own
 pd.read_html_string('<h1>Statement</h1>')
 pd.write_pdf('statement.pdf')
 pages = pd.get_last_render_info(Pd4ml::Constants::PD4ML_TOTAL_PAGES).to_i
@@ -592,6 +613,14 @@ The block runs on the calling thread while the conversion runs in Java, and it m
 itself. An error it raises comes out of the call that caused it, as a `Pd4ml::CallbackError`.
 The v42 engine currently reports fewer progress stages than v40. More in
 [extensibility and diagnostics](https://pd4ml.com/docs/#12.-extensibility-and-diagnostics).
+
+`add_metadata(key, value, hide)` adds a custom property to the PDF's XMP metadata, which viewers
+show among the custom document properties (`hide`: true keeps it out of their view).
+`add_metadata(namespace_uri, prefix, key, value)` (PD4ML 4.2) adds an XMP property in a
+namespace of your own; the example writes `<tdm:reservation>1</tdm:reservation>`, which tells
+text and data mining crawlers the rights are reserved (the W3C TDM Reservation Protocol). In PDF/A
+output, PD4ML declares the namespace in a PDF/A extension schema. A reserved prefix (`rdf`, `xmp`,
+`dc`, `pdf`, `pd4ml`...) raises `Pd4ml::JavaError` (`IllegalArgumentException`).
 
 ### 5.15 Working with existing PDFs
 
@@ -621,7 +650,132 @@ PD4ML's PDF toolkit (signing, optimisation, XFDF) is described in
 [the PDF post-processing toolkit](https://pd4ml.com/docs/#15.-the-pdf-post-processing-toolkit)
 and is reachable through `Pd4ml::Java.type(...)`.
 
-### 5.16 Web applications
+### 5.16 E-mail messages and saved web pages
+
+PD4ML 4.2 reads e-mail messages (`.eml`) and web pages saved as a single file (`.mht`, `.mhtml`)
+and writes them to any output format:
+
+```ruby
+require 'pd4ml'
+
+pd = Pd4ml::PD4ML.new
+pd.read_eml('message.eml')                 # a path or URL, or the message itself: File.binread, an IO
+pd.write_pdf('message.pdf')                # the attachments are embedded in the PDF
+
+page = Pd4ml::PD4ML.new
+page.read_mht('page.mht')                  # a saved web page, with its images, styles and fonts
+page.write_pdf('page.pdf')
+```
+
+- A message becomes a block with From, Date, To, Cc, Subject and the attachments, followed by its
+  body: the HTML version if there is one, otherwise the plain text, with the images it embeds. The
+  attached files are embedded in the PDF next to their names (PDF/A-1 and PDF/A-2 and the other
+  outputs keep only the names).
+- A saved page shows as it was saved, with the resources saved in the file; its links lead where
+  they led on the original page.
+- `read_html` recognizes these files too, by the `.eml`, `.mht` or `.mhtml` ending or by how the
+  content starts. For mail from outside your control, use `read_eml` and `read_mht`.
+- Of the resources a file refers to but does not contain, only `https://` ones are loaded.
+  `add_allowed_resource_location` ([5.17](#517-untrusted-html-restricting-resource-loading))
+  replaces that list. A file read from a path or URL must then be within the allowed locations
+  itself; one passed as content (a binary String or IO) need not be.
+- Scripts do not run, the content of frames is not shown, and encrypted (S/MIME, PGP) messages
+  are not decrypted.
+
+See [converting e-mail and saved web pages](https://pd4ml.com/docs/features/converting-e-mail-and-saved-web-pages.html).
+
+### 5.17 Untrusted HTML: restricting resource loading
+
+HTML from users, customers or other systems decides what PD4ML loads: `<img src="file:/etc/...">`
+reads local files, `http://169.254.169.254/...` calls services inside your network.
+`add_allowed_resource_location` (PD4ML 4.2) limits loading to the locations you list:
+
+```ruby
+require 'pd4ml'
+
+user_html = '<p>Comment <img src="file:/etc/hosts"> <img src="http://169.254.169.254/latest/meta-data/"></p>'
+pd = Pd4ml::PD4ML.new
+pd.add_allowed_resource_location('https://cdn.example.com/assets/')
+pd.add_allowed_resource_location('https://*.example.org/, file:/opt/app/templates/')
+pd.read_html_string(user_html, 'https://cdn.example.com/assets/')
+pd.write_pdf('comment.pdf')                # without the two images
+```
+
+- `locations` is a comma-separated list of URL prefixes; each call adds to the list. `*` matches
+  any characters except `/` (one host name or path segment). The comparison ignores case, and a
+  path containing `..` is always rejected.
+- It covers style sheets, images, web fonts and attachments, and the document itself when it is
+  read from a path or URL. `data:` URIs, `java:` resources and the font directories of `use_ttf`
+  are not affected.
+- A rejected resource is left out and the conversion goes on;
+  `set_error_policy(Pd4ml::ErrorPolicy::PEDANTIC)` makes it fail with a `Pd4ml::JavaError`
+  instead, and `set_log_level(Pd4ml::Constants::LOG_CACHE)` logs what was rejected.
+- With no location added, resources load from anywhere. Call it before `read_html`.
+
+See [restricting resource loading for untrusted HTML](https://pd4ml.com/docs/features/restricting-resource-loading-for-untrusted-html.html).
+
+### 5.18 Modifying the document before conversion (DOM API)
+
+With the v42 layout engine, the document `read_html` parsed can be read, queried with CSS
+selectors and changed before it is written; `layout` lays it out into pages without writing it
+and tells where each element ended up.
+
+> The DOM API (`get_document`, `layout` and the `Pd4ml::Dom` classes) is part of the **DMS and UA
+> editions** of PD4ML 4.2. Without a license it can be evaluated (the output carries the
+> evaluation watermark); with an STD or PRO license it works, but the output of a document it was
+> used on carries "PD4ML EVALUATION MODE" banners. See [editions](https://pd4ml.com/products/).
+
+```ruby
+require 'pd4ml'
+
+pd = Pd4ml::PD4ML.new                      # the v42 engine
+pd.read_html_string(<<~HTML)
+  <h1 id="title">Invoice</h1>
+  <table class="items"><tr><td>Consulting</td><td class="price">1 200,00</td></tr></table>
+  <img src="logo.png">
+  <div id="totals">Total: <span id="total"></span></div>
+HTML
+
+doc = pd.get_document
+doc.get_element_by_id('total').set_text_content('1 250,00 EUR')
+doc.query_selector_all('img:not([alt])').each { |img| img.set_attribute('alt', '') }   # a Ruby Array
+doc.query_selector('table.items').add_class('striped')
+note = doc.create_element('p')
+note.set_inner_html('Payable within <b>30 days</b>.')
+doc.get_body.append_child(note)
+
+layout = pd.layout                         # the pages as write_pdf would make them
+totals = doc.get_element_by_id('totals')
+totals.set_attribute('style', 'page-break-before: always') if layout.get_pages(totals).size > 1
+layout.get_boxes(totals).each do |box|
+  puts format('page %d: %.1f, %.1f, %.1f x %.1f pt', box.get_page, box.get_x, box.get_y, box.get_width, box.get_height)
+end
+puts "#{layout.get_page_count} page(s), total in #{layout.get_computed_style(totals, 'color')}"
+pd.write_pdf('invoice.pdf')
+```
+
+| | Methods (Ruby-style; the Java names work too) |
+|---|---|
+| `Dom::Document` (`pd.get_document`) | `get_element_by_id`, `query_selector`, `query_selector_all`, `get_elements_by_tag_name`, `get_elements_by_class_name`, `get_head`, `get_body`, `get_title`, `create_element`, `create_text_node`, `create_comment` |
+| `Dom::Node` (every node) | `get_parent_node`, `get_child_nodes`, `get_first_child`, `get_next_sibling`..., `append_child`, `insert_before`, `replace_child`, `remove_child`, `remove`, `clone_node`, `contains`, `get_text_content`, `set_text_content`, `to_html` |
+| `Dom::Element` | `get_attribute`, `set_attribute`, `remove_attribute`, `get_attributes` (a Hash), `get_id`, `get_class_list`, `add_class`, `remove_class`, `toggle_class`, `get_inner_html`, `set_inner_html`, `get_outer_html`, `set_outer_html`, `matches`, `closest`, `get_children`... and the queries of `Document` within the element |
+| `Dom::Layout` (`pd.layout`) | `get_page_count`, `get_page_width(page)`, `get_page_height(page)`, `get_page_number(page)`, `get_boxes(element)`, `get_pages(element)`, `get_computed_style(element, property)`, `element_at(page, x, y)` |
+| `Dom::LayoutBox` | `get_page`, `get_x`, `get_y`, `get_width`, `get_height` (PDF points from the top left corner of the page) |
+
+- Lists (`query_selector_all`, `get_child_nodes`, `get_boxes`, `get_pages`...) come back as Ruby
+  Arrays, `get_attributes` as a Hash. They are snapshots: removing or moving nodes while going
+  through one is safe.
+- Two objects for the same node are `==` (Java `equals`), but not necessarily the same object.
+- A layout is a snapshot too: after changing the document, call `layout` again. Pages are
+  numbered from 1.
+- Change the document before the first output; every later write lays out the changed document.
+- `get_document` and `layout` raise `Pd4ml::JavaError` (`IllegalStateException`) before
+  `read_html` or with the v40 engine.
+
+The full method list is in [api.md](api.md#pd4mldomnode); the PD4ML guide is
+[modifying the HTML document before conversion](https://pd4ml.com/docs/features/modifying-the-html-document-before-conversion.html).
+
+### 5.19 Web applications
 
 Rails controller, with the HTML from a view:
 
@@ -658,7 +812,7 @@ To pay the cost of starting Java at boot instead of on the first request, touch 
 initializer (`Pd4ml.version`). Each Puma worker process starts its own bridge; set
 `PD4ML_BRIDGE` to share one bridge server between them.
 
-### 5.17 Batch conversion
+### 5.20 Batch conversion
 
 ```ruby
 require 'pd4ml'
@@ -674,7 +828,7 @@ end
 One bridge serves the whole loop. To convert in parallel, run several processes (each with its
 own bridge), or point them all at one bridge server.
 
-### 5.18 Licensing
+### 5.21 Licensing
 
 <!-- no-test -->
 ```ruby
@@ -709,8 +863,9 @@ Without a license, PD4ML is fully functional but marks its output. See
   differently than in the browser, set `set_html_width` to the width the page was designed for.
 - **Index fonts once** with `-configure.fonts`, instead of pointing `use_ttf` at a large
   unindexed directory on every conversion.
-- **Restrict what documents can load** when converting untrusted HTML. Use `set_param` with
-  `Constants::PD4ML_ALLOWED_RESOURCE_LOCATION` and `PD4ML_DISABLE_EXTERNAL_ATTACHMENTS`.
+- **Restrict what documents can load** when converting untrusted HTML, with
+  `add_allowed_resource_location` ([5.17](#517-untrusted-html-restricting-resource-loading)); also
+  consider `set_param(Pd4ml::Constants::PD4ML_DISABLE_EXTERNAL_ATTACHMENTS, 'true')`.
 - **Pin the build in production.** Use `pd4ml install <version>` or a `PD4ML_CLASSPATH` to a
   jar you keep, rather than following the latest release.
 
@@ -739,6 +894,7 @@ Without a license, PD4ML is fully functional but marks its output. See
 |---|---|
 | `Pd4ml::PD4ML` | the converter: `Pd4ml::PD4ML.new(license:, html_width:, engine:)`; every Java method of `com.pd4ml.PD4ML` |
 | `PageSize`, `PageMargins`, `Units`, `Dimensions`, `Constants`, `LayoutEngine`, `ErrorPolicy`, `PdfSpec`, `PdfDocument`, `ProgressListener`, `StatusMessage`, `ResourceProvider`, `CustomTag` | the PD4ML Java classes ([api.md](api.md)) |
+| `Dom::Document`, `Dom::Node`, `Dom::Element`, `Dom::Text`, `Dom::Comment`, `Dom::DocumentType`, `Dom::Layout`, `Dom::LayoutBox` | the DOM API classes, from `pd.get_document` and `pd.layout` ([5.18](#518-modifying-the-document-before-conversion-dom-api)); their lists come back as Arrays |
 | `html_to_pdf(source, target, base_url:, page_size:, page_margins:, spec:, engine:, html_width:)`, `open_pdf(source, password)`, `write_pdf(doc, target, password:, permissions:)`, `merge_pdfs(a, b, target)` | one-call conversion and PDF documents |
 | `version`, `layout_engines?`, `to_url(location)`, `pdf_spec(keyword)` | runtime helpers |
 | `configure(**options)`, `shutdown` | the bridge: `classpath:`, `java:`, `jvm_options:`, `server:`, `log_file:` |
@@ -752,6 +908,7 @@ Without a license, PD4ML is fully functional but marks its output. See
 |---|---|
 | `read_html(source, base_url = nil, encoding = nil)` | `source`: a path or URL (String, Pathname, URI), a binary String or IO, or a Java `URL`/`InputStream` |
 | `read_html_string(html, base_url = nil)` | the document as a String |
+| `read_eml(source)`, `read_mht(source)` | an e-mail message, a saved web page ([5.16](#516-e-mail-messages-and-saved-web-pages)); `source` as for `read_html` |
 | `write_pdf(target = nil, spec: nil)` | `target`: a path or IO; none: returns a binary String. `spec`: a `PdfSpec`, a keyword (`'pdf/a-2b'`) or `'PDF'`/`'PDFA'`/`'PDFUA'` |
 | `write_docx(target = nil)`, `write_rtf(target = nil, rtf_wmf: false)` | as `write_pdf` |
 | `render_as_images(format)`, `render_png` | pages as encoded images (binary Strings); `render_as_images(dir, name, format)` writes files |

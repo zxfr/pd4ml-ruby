@@ -29,11 +29,17 @@ Requirements:
 - Ruby 3.1 or later.
 - Java 8 or later, found through `PD4ML_JAVA`, `JAVA_HOME` or the `PATH`.
 
-PD4ML itself is downloaded from <https://pd4ml.com/maven2>: the most recent 4.x release, plus the
-Bouncy Castle jars it needs for encryption and signing. Every file is checked against its SHA-1
-checksum. The download happens with `pd4ml install`, or on first use (`PD4ML_AUTO_INSTALL=0`
-turns that off). Builds are stored per user (`%LOCALAPPDATA%\pd4ml-ruby`, `~/.cache/pd4ml-ruby`,
-or `PD4ML_HOME`).
+PD4ML itself is downloaded from <https://pd4ml.com/maven2>: by default the most recent release from
+4.2.0 on, plus the Bouncy Castle jars it needs for encryption and signing. Every file is checked
+against its SHA-1 checksum. The download happens with `pd4ml install`, or on first use
+(`PD4ML_AUTO_INSTALL=0` turns that off). Builds are stored per user
+(`%LOCALAPPDATA%\pd4ml-ruby`, `~/.cache/pd4ml-ruby`, or `PD4ML_HOME`).
+
+The gem's PD4ML 4.2 API (`read_eml`/`read_mht`, `add_allowed_resource_location`, XMP
+`add_metadata`, the DOM API) needs PD4ML 4.2. Until PD4ML 4.2.0 is released, the default is
+therefore the most recent 4.2.x development snapshot (4.2.0-SNAPSHOT). Once 4.2.0 is out, new
+installs take it, and `pd4ml install` updates existing ones. `pd4ml install 4.1.2` installs the
+current 4.1 release instead (the rest of the API works with it). See [Install PD4ML](docs/guide.md#22-install-pd4ml).
 
 To use a PD4ML jar of your own, set `PD4ML_CLASSPATH`, set `PD4ML_CLASSPATH_FILE`, or call
 `Pd4ml.configure(classpath: [...])`.
@@ -51,10 +57,15 @@ The gem adds Ruby I/O on top: paths, URLs, binary Strings and IO objects in and 
 for progress listeners. Several processes can share one bridge server: run `pd4ml serve` and set
 `PD4ML_BRIDGE=tcp://127.0.0.1:8723`.
 
+With PD4ML 4.2, the gem also reads e-mail messages and saved web pages (`read_eml`, `read_mht`),
+and gives access to the parsed document before it is written (`get_document`, `layout`: the DOM
+API of the DMS and UA editions, whose lists come back as Ruby Arrays). See the
+[guide](docs/guide.md#516-e-mail-messages-and-saved-web-pages).
+
 ## Command line
 
 ```
-pd4ml install [VERSION] [--snapshots]   download PD4ML (or update it)
+pd4ml install [VERSION] [--snapshots]   download PD4ML (default: 4.2, see above) or update it
 pd4ml list                              versions in the repository
 pd4ml version                           the PD4ML version in use
 pd4ml convert in.html out.pdf [--page-size A4 --landscape --spec pdf/a-2b ...]

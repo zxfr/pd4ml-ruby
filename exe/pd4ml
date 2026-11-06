@@ -5,11 +5,16 @@
 require 'optparse'
 require_relative '../lib/pd4ml'
 
+MINIMUM = Pd4ml::Installer::MINIMUM_VERSION
+LINE = MINIMUM.split('.')[0, 2].join('.')
 USAGE = <<~TEXT
   usage: pd4ml <command> [options]
 
     install [VERSION] [--snapshots] [--jakarta] [--home DIR] [--force] [--no-bouncycastle]
-                        download a PD4ML build (default: the most recent 4.* release), or update to it
+                        download a PD4ML build, or update to it. Default: the most recent
+                        release from #{MINIMUM} on; until #{MINIMUM} is out, the most recent #{LINE}.x
+                        snapshot (the gem's #{LINE} API needs PD4ML #{LINE}). --snapshots: the most
+                        recent 4.* build. VERSION: an exact one, e.g. 4.1.2
     list [--snapshots] [--jakarta]
                         the versions in the PD4ML repository (* the installed one)
     version             the PD4ML version the gem runs (downloads it on first use)

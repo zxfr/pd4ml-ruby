@@ -42,7 +42,9 @@ module Pd4ml
 
   # A Java object living in the bridge. Call its Java methods by their Java names or in Ruby
   # style (`size.rotate`, `pd.set_page_size(...)`, `pd.demo_mode?`). Public fields: `obj[:width]`
-  # / `obj[:width] = v`. Released in Java when garbage collected.
+  # / `obj[:width] = v`. Released in Java when garbage collected. The DOM API's objects
+  # (com.pd4ml.dom) return their Java lists and sets as Ruby Arrays, maps as Hashes
+  # (`doc.query_selector_all('p').each { ... }`); `call_java` returns them as they are.
   class JavaObject < BasicObject
     def initialize(bridge, handle, java_class, enum_name)
       @bridge = bridge
@@ -110,7 +112,9 @@ module Pd4ml
       ::Kernel.raise ::NoMethodError, "set Java fields with obj[:#{name.to_s.chomp('=')}] = value" if name.to_s.end_with?('=')
       ::Kernel.raise ::ArgumentError, 'Java methods take no block' if block
 
-      @bridge.call(self, Naming.resolve(@bridge, @java_class, name, false), args)
+      result = @bridge.call(self, Naming.resolve(@bridge, @java_class, name, false), args)
+      # the DOM API's lists, sets and maps are snapshots: Ruby Arrays and Hashes
+      @java_class.start_with?('com.pd4ml.dom.') ? Java.to_ruby(result) : result
     end
 
     def respond_to_missing?(_name, _include_private = false) = true
@@ -204,6 +208,22 @@ module Pd4ml
       raise ArgumentError, 'a block is required' unless block
 
       Bridge.get.proxy(iface, &block)
+    end
+
+    # A Java collection (List, Set...) as a Ruby Array and a Java Map as a Hash, in one or two
+    # bridge calls; any other value as it is.
+    def self.to_ruby(value)
+      return value unless value.is_a?(JavaObject) && value.java_class.start_with?('java.util.')
+
+      if value.instance_of_java?('java.util.Collection')
+        value.call_java('toArray')
+      elsif value.instance_of_java?('java.util.Map')
+        keys = value.call_java('keySet').call_java('toArray')
+        values = value.call_java('values').call_java('toArray')
+        keys.zip(values).to_h
+      else
+        value
+      end
     end
   end
 end
