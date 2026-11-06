@@ -63,19 +63,22 @@ module Pd4ml
     # (4.2.x for 4.2.0); while there is none of those either (the -jakarta variant has no 4.2
     # build yet), the most recent 4.* release, as before. So installs move to the release once it
     # is out, and snapshots of later lines (or a 5.x) are never picked by accident. With
-    # `jakarta`, the same among the -jakarta variants.
+    # `jakarta`, a -jakarta variant by that rule if there is one, else the plain build of the same
+    # rule: PD4ML 4.2 publishes no -jakarta variant, its builds contain the Jakarta tag library
+    # (com.pd4ml.taglib.jakarta); only without either, the most recent -jakarta release.
     def default_version(versions, jakarta: false, minimum: MINIMUM_VERSION)
       min = version_key(minimum)
-      candidates = versions.select do |v|
-        k = version_key(v)
-        k && k[0] == min[0] && v.include?('-jakarta') == jakarta
+      (jakarta ? [true, false] : [false]).each do |variant|
+        candidates = versions.select do |v|
+          k = version_key(v)
+          k && k[0] == min[0] && v.include?('-jakarta') == variant
+        end
+        releases = candidates.select { |v| !v.end_with?('-SNAPSHOT') && (version_key(v) <=> min) >= 0 }
+        return sort_versions(releases).last unless releases.empty?
+
+        snapshots = candidates.select { |v| v.end_with?('-SNAPSHOT') && version_key(v)[0, 2] == min[0, 2] }
+        return sort_versions(snapshots).last unless snapshots.empty?
       end
-      releases = candidates.select { |v| !v.end_with?('-SNAPSHOT') && (version_key(v) <=> min) >= 0 }
-      return sort_versions(releases).last unless releases.empty?
-
-      snapshots = candidates.select { |v| v.end_with?('-SNAPSHOT') && version_key(v)[0, 2] == min[0, 2] }
-      return sort_versions(snapshots).last unless snapshots.empty?
-
       select_version(versions, major: min[0], jakarta: jakarta)
     end
 

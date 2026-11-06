@@ -113,7 +113,7 @@ explicitly (`pd4ml install 4.1.2`); the 4.2 methods then raise `Pd4ml::JavaError
 | *(none)* | the most recent release from 4.2.0 on, else the most recent 4.2.x snapshot ([which build](#which-build)), or an update to it |
 | `--snapshots` | the most recent 4.x build, including development snapshots |
 | `pd4ml install 4.1.2` | an exact version (any release or snapshot the repository lists) |
-| `--jakarta` | the `-jakarta` variant (for Jakarta EE / Servlet 6 environments); while there is no 4.2 `-jakarta` build, the most recent `-jakarta` release (4.0.x, without the 4.2 API) |
+| `--jakarta` | for Jakarta EE / Servlet 6 environments: a `-jakarta` variant if one fits; PD4ML 4.2 has none (its builds contain the Jakarta tag library), so the same 4.2 build (an older `-jakarta` build by version, e.g. `pd4ml install 4.0.20fx3-jakarta`) |
 | `--home DIR` | install into `DIR` (default: `PD4ML_HOME`, else the cache directory) |
 | `--force` | download again |
 | `--no-bouncycastle` | skip the Bouncy Castle jars (encryption and signing will not work) |
