@@ -652,6 +652,10 @@ and is reachable through `Pd4ml::Java.type(...)`.
 
 ### 5.16 E-mail messages and saved web pages
 
+> **Editions.** E-mail and saved web page input — `read_eml`/`read_mht`, and `read_html` for input it
+> recognizes as one of them — is part of the PD4ML **DMS and UA editions**. With an STD or PRO license it
+> works, but the output carries the "PD4ML EVALUATION MODE" banners.
+
 PD4ML 4.2 reads e-mail messages (`.eml`) and web pages saved as a single file (`.mht`, `.mhtml`)
 and writes them to any output format:
 
@@ -908,7 +912,7 @@ Without a license, PD4ML is fully functional but marks its output. See
 |---|---|
 | `read_html(source, base_url = nil, encoding = nil)` | `source`: a path or URL (String, Pathname, URI), a binary String or IO, or a Java `URL`/`InputStream` |
 | `read_html_string(html, base_url = nil)` | the document as a String |
-| `read_eml(source)`, `read_mht(source)` | an e-mail message, a saved web page ([5.16](#516-e-mail-messages-and-saved-web-pages)); `source` as for `read_html` |
+| `read_eml(source)`, `read_mht(source)` | an e-mail message, a saved web page ([5.16](#516-e-mail-messages-and-saved-web-pages)), DMS and UA editions; `source` as for `read_html` |
 | `write_pdf(target = nil, spec: nil)` | `target`: a path or IO; none: returns a binary String. `spec`: a `PdfSpec`, a keyword (`'pdf/a-2b'`) or `'PDF'`/`'PDFA'`/`'PDFUA'` |
 | `write_docx(target = nil)`, `write_rtf(target = nil, rtf_wmf: false)` | as `write_pdf` |
 | `render_as_images(format)`, `render_png` | pages as encoded images (binary Strings); `render_as_images(dir, name, format)` writes files |

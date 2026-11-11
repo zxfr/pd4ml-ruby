@@ -57,7 +57,8 @@ The gem adds Ruby I/O on top: paths, URLs, binary Strings and IO objects in and 
 for progress listeners. Several processes can share one bridge server: run `pd4ml serve` and set
 `PD4ML_BRIDGE=tcp://127.0.0.1:8723`.
 
-With PD4ML 4.2, the gem also reads e-mail messages and saved web pages (`read_eml`, `read_mht`),
+With PD4ML 4.2, the gem also reads e-mail messages and saved web pages (`read_eml`, `read_mht`; DMS
+and UA editions),
 and gives access to the parsed document before it is written (`get_document`, `layout`: the DOM
 API of the DMS and UA editions, whose lists come back as Ruby Arrays). See the
 [guide](docs/guide.md#516-e-mail-messages-and-saved-web-pages).
