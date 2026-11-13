@@ -1,6 +1,6 @@
 # pd4ml — PD4ML for Ruby
 
-HTML and CSS to **PDF**, **PDF/A**, **PDF/UA**, **ZUGFeRD/Factur-X**, **DOCX**, **RTF** and
+HTML and CSS to **PDF**, **PDF/A**, **PDF/UA**, **ZUGFeRD/Factur-X**, **DOCX**, **RTF**, **Markdown** and
 **images** from Ruby, with the complete public [PD4ML](https://pd4ml.com) API. The v42 layout
 engine is the default.
 

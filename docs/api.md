@@ -164,6 +164,8 @@ async_resource_loader(thread_pool_size: Integer) -> nil   # asyncResourceLoader
 | `Pd4ml::Constants::PDFA` | String | static read-only |
 | `Pd4ml::Constants::PDFUA` | String | static read-only |
 | `Pd4ml::Constants::DOCX` | String | static read-only |
+| `Pd4ml::Constants::MARKDOWN` | String | static read-only |
+| `Pd4ml::Constants::PD4ML_DOCX_EMBED_FONTS` | String | static read-only |
 | `Pd4ml::Constants::RTF` | String | static read-only |
 | `Pd4ml::Constants::RTF_WMF` | String | static read-only |
 | `Pd4ml::Constants::PNG8` | String | static read-only |

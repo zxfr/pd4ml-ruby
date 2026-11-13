@@ -1,7 +1,7 @@
 # PD4ML for Ruby — User Guide
 
 `pd4ml` brings [PD4ML](https://pd4ml.com) to Ruby: it converts HTML and CSS into **PDF**,
-**PDF/A**, **PDF/UA**, **ZUGFeRD/Factur-X** invoices, **DOCX**, **RTF** and **page images**, and
+**PDF/A**, **PDF/UA**, **ZUGFeRD/Factur-X** invoices, **DOCX**, **RTF**, **Markdown** and **page images**, and
 gives Ruby applications the complete public PD4ML API.
 
 PD4ML is a Java library. The gem runs it in a small Java *bridge* process that Ruby talks to.
@@ -192,7 +192,7 @@ puts pdf[0, 5]                              # %PDF-
 A document is **read once and written any number of times**:
 
 - `read_html` parses the document and lays it out;
-- each `write_pdf`, `write_docx`, `write_rtf` or `render_as_images` call then produces one output
+- each `write_pdf`, `write_docx`, `write_rtf`, `write_markdown` or `render_as_images` call then produces one output
   from that same layout.
 
 Settings (page size, headers, fonts...) go before `read_html`. See
@@ -328,7 +328,7 @@ pd.read_html_string(html)
 pdf = pd.write_pdf                       # the PDF as a binary String
 ```
 
-`write_pdf`, `write_docx` and `write_rtf` return the document as a binary String when given no
+`write_pdf`, `write_docx`, `write_rtf` and `write_markdown` return the document as a binary String when given no
 target. Given a path (a String or Pathname) they write the file, given an IO (a `File`, a
 `StringIO`, a Rack body) they write into it.
 
@@ -552,6 +552,25 @@ The v42 engine does not support the multi-page TIFF formats yet; use the v40 eng
 
 With the v42 engine, DOCX/RTF output is *editable*: positioned content becomes text boxes
 and form fields, not pictures.
+
+**Markdown** for LLM, RAG and search pipelines (PD4ML 4.2.0 or newer, v42 engine): only the
+text a reader sees, in reading order, with headings, lists, tables, links, footnotes and image
+references. With `page_markers: true` each page starts with `<!-- page N -->`, the page of the
+PDF the same conversion writes, so a chunk of text can be cited by page:
+
+```ruby
+require 'pd4ml'
+
+pd = Pd4ml::PD4ML.new
+pd.read_html_string('<h1>Report</h1><p>Revenue grew by <b>12%</b>.</p>')
+pd.write_pdf('report.pdf')
+md = pd.to_markdown(page_markers: true)   # a String: "<!-- page 1 -->\n\n# Report\n\n..."
+pd.write_markdown('report.md')            # or to an IO, or a binary String
+```
+
+Markdown output is a feature of the DMS and UA editions: with another license, or none, the
+Markdown carries evaluation notes. See
+[HTML to Markdown for LLM and RAG Pipelines](https://pd4ml.com/docs/features/html-to-markdown-for-llm-and-rag-pipelines.html).
 
 ### 5.12 Interactive forms and multi-column layout
 
@@ -857,7 +876,7 @@ Without a license, PD4ML is fully functional but marks its output. See
   always caused by unresolved relative links ([details](https://pd4ml.com/docs/#6.2-reading-the-source)).
 - **Settings go before `read_html`.** Page size, headers, fonts and styles apply to the layout
   `read_html` makes; writes afterwards only choose the output format.
-- **Write several formats from one read.** PDF, DOCX and page images from a single `read_html`
+- **Write several formats from one read.** PDF, DOCX, Markdown and page images from a single `read_html`
   cost one layout.
 - **Binary in, binary out.** Pass content as a binary String (`File.binread`, `.b`) or an IO;
   results are binary Strings, ready for `File.binwrite` or `send_data`.
@@ -915,6 +934,7 @@ Without a license, PD4ML is fully functional but marks its output. See
 | `read_eml(source)`, `read_mht(source)` | an e-mail message, a saved web page ([5.16](#516-e-mail-messages-and-saved-web-pages)), DMS and UA editions; `source` as for `read_html` |
 | `write_pdf(target = nil, spec: nil)` | `target`: a path or IO; none: returns a binary String. `spec`: a `PdfSpec`, a keyword (`'pdf/a-2b'`) or `'PDF'`/`'PDFA'`/`'PDFUA'` |
 | `write_docx(target = nil)`, `write_rtf(target = nil, rtf_wmf: false)` | as `write_pdf` |
+| `write_markdown(target = nil, page_markers: false)`, `to_markdown(page_markers: false)` | Markdown, as `write_pdf` / as a String |
 | `render_as_images(format)`, `render_png` | pages as encoded images (binary Strings); `render_as_images(dir, name, format)` writes files |
 | `monitor_progress_with { \|message_id, progress, note, msec\| ... }` | a block, or a Java `ProgressListener` |
 | `use_html_renderer(engine, html_width: nil, params: nil)` | the layout engine by name; `pd.engine` tells which one is in use |

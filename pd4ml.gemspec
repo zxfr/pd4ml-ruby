@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.version = Pd4ml::VERSION
   spec.authors = ['PD4ML']
   spec.email = ['support@pd4ml.com']
-  spec.summary = 'PD4ML for Ruby: HTML and CSS to PDF, PDF/A, PDF/UA, ZUGFeRD, DOCX, RTF and images'
+  spec.summary = 'PD4ML for Ruby: HTML and CSS to PDF, PDF/A, PDF/UA, ZUGFeRD, DOCX, RTF, Markdown and images'
   spec.description = 'The full public PD4ML API in Ruby. PD4ML runs in a Java bridge process; the most recent ' \
                      'PD4ML build is downloaded on first use.'
   spec.homepage = 'https://github.com/zxfr/pd4ml-ruby'

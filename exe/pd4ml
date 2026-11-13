@@ -19,7 +19,7 @@ USAGE = <<~TEXT
                         the versions in the PD4ML repository (* the installed one)
     version             the PD4ML version the gem runs (downloads it on first use)
     serve [--port N]    run a bridge server (default port 8723) for PD4ML_BRIDGE=tcp://127.0.0.1:N
-    convert INPUT OUTPUT [--format pdf|docx|rtf|png] [--page-size A4] [--landscape]
+    convert INPUT OUTPUT [--format pdf|docx|rtf|md|png] [--page-size A4] [--landscape]
             [--margins 10,10,10,10] [--width PX] [--engine v42|v40] [--spec pdf/a-2b]
             [--footer HTML] [--bookmarks]
                         convert a file or URL; the format follows OUTPUT's extension by default
@@ -73,6 +73,7 @@ def convert(args)
   when 'pdf' then pd.write_pdf(output, spec: opts[:spec])
   when 'docx' then pd.write_docx(output)
   when 'rtf' then pd.write_rtf(output)
+  when 'md', 'markdown' then pd.write_markdown(output, page_markers: true)
   when 'png'
     pages = pd.render_png
     if pages.size == 1
@@ -81,7 +82,7 @@ def convert(args)
       stem = output.sub(/\.png\z/i, '')
       pages.each_with_index { |p, i| File.binwrite("#{stem}-#{i + 1}.png", p) }
     end
-  else raise ArgumentError, "unknown format '#{format}' (pdf, docx, rtf, png)"
+  else raise ArgumentError, "unknown format '#{format}' (pdf, docx, rtf, md, png)"
   end
 end
 

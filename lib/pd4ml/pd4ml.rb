@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Pd4ml
-  # An HTML to PDF/DOCX/RTF/image converter: com.pd4ml.PD4ML with Ruby I/O and the v42 layout
+  # An HTML to PDF/DOCX/RTF/Markdown/image converter: com.pd4ml.PD4ML with Ruby I/O and the v42 layout
   # engine by default. Every Java method is available by its Java name or in Ruby style
   # (`set_page_size`, `add_style`, `use_ttf`); these take Ruby I/O: read_html (a path, URL or
   # binary String/IO), read_html_string, write_pdf/write_docx/write_rtf (the document returned as
@@ -165,6 +165,31 @@ module Pd4ml
       Pd4ml.deliver(outs[0] || ''.b, target)
     end
     alias writeRTF write_rtf
+
+    # Writes the document as Markdown (GitHub-flavored, UTF-8) for LLM, RAG and search pipelines:
+    # the text a reader sees, in reading order, with headings, lists, tables, links, footnotes and
+    # image references (v42 engine, PD4ML 4.2.0 or newer). page_markers: each page starts with
+    # `<!-- page N -->`, N being the page of the PDF the same conversion writes. A feature of the
+    # DMS and UA editions: with another license, or none, the Markdown carries evaluation notes.
+    # See write_pdf for `target`; to_markdown returns it as a String.
+    def write_markdown(target = nil, page_markers: false)
+      outs = []
+      begin
+        Bridge.get.call(@java, 'writeMarkdown', [Output.new(0), page_markers ? true : false], outs)
+      rescue StandardError => e
+        raise unless e.message.to_s.include?('NoSuchMethodException')
+
+        raise "write_markdown needs PD4ML 4.2.0 or newer (this is #{@java.getVersion}): " \
+                     "run 'pd4ml install' to update"
+      end
+      Pd4ml.deliver(outs[0] || ''.b, target)
+    end
+    alias writeMarkdown write_markdown
+
+    # The document as a Markdown String, UTF-8 (see write_markdown).
+    def to_markdown(page_markers: false)
+      write_markdown(nil, page_markers: page_markers).force_encoding(Encoding::UTF_8)
+    end
 
     # render_as_images(format): the pages as encoded images (Constants::PNG24...), binary Strings;
     # render_as_images(dir, name, format): image files written to a directory;
